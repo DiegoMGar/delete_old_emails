@@ -1,0 +1,12 @@
+{
+ "connection": {
+   "host": "mail.example.es",
+   "user": "user@example.es",
+   "password": "thesupersecretpassword",
+   "ssl": "TLS"
+ },
+ "foldersToClean": [
+   "trash",
+   "spam"
+ ]
+}
