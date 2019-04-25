@@ -16,7 +16,7 @@ if (empty($config)) {
     die();
 }
 $config = json_decode($config, true);
-if(!isset($config["connection"]) || !isset($config["foldersToClean"])){
+if (!isset($config["connection"]) || !isset($config["foldersToClean"])) {
     echo "Secciones de configuración vacías en 'config/config.json'";
     die();
 }
@@ -34,11 +34,12 @@ function deleteMsgIfItIsOld($mail, $id, $message)
 {
     $borrado = false;
     $ahora = new DateTime();
-    $ahora->sub(new DateInterval("P20D"));
+    $ahora->sub(new DateInterval("P10D"));
     $dateMessage = new DateTime($message->date);
     if ($ahora->format("Y-m-d H:m:i") > $dateMessage->format("Y-m-d H:m:i")) {
         echo "\t  Borrado: {$id} -> {$message->subject}\n";
         $mail->removeMessage($id);
+        usleep(200000);
         $borrado = true;
     }
     return $borrado;
@@ -50,9 +51,7 @@ function deleteMsgIfItIsOld($mail, $id, $message)
  */
 function printUnreadedEmails($mail)
 {
-    $maxABorrar = 15;
     $borrados = 0;
-    echo "\tUnread mails:\n";
     $messages = $mail->countMessages();
     for ($i = 1; $i <= $messages; $i++) {
         try {
@@ -62,10 +61,6 @@ function printUnreadedEmails($mail)
             }
             if (deleteMsgIfItIsOld($mail, $i, $message)) {
                 $borrados++;
-                if ($borrados >= $maxABorrar) {
-                    echo "\nMAXIMO BORRADO ALCANZADO ****\n";
-                    die();
-                }
             }
         } catch (Throwable $err) {
             $uniqid = uniqid();
@@ -73,6 +68,7 @@ function printUnreadedEmails($mail)
             sleep(1);
         }
     }
+    echo "****\n\tBorrados: $borrados\n****\n";
 }
 
 $folders = new RecursiveIteratorIterator(
@@ -85,15 +81,14 @@ foreach ($folders as $localName => $folder) {
     $localName = str_pad('', $folders->getDepth(), '-', STR_PAD_LEFT)
         . $localName;
     $mail->selectFolder($folder);
-    echo $mail->getCurrentFolder();
-    printf(": %s\n", $localName);
     foreach ($config["foldersToClean"] as $aLimpiar) {
         if (preg_match("/{$aLimpiar}$/i", $folder)) {
+            echo $mail->getCurrentFolder();
+            printf(": %s\n", $localName);
             printUnreadedEmails($mail);
             break;
         }
     }
-    echo "*\n";
 }
 
 echo "\nFIN**\n";
